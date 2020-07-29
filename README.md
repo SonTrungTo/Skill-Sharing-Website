@@ -1,4 +1,4 @@
-# [Project: A skill-sharing website.](https://vast-peak-65357.herokuapp.com/)
+# Project: A skill-sharing website.
 This projects builds a small chat app website that encourages information exchanges
 between people on various topics.
 

@@ -67,35 +67,47 @@ function renderUserField(name, dispatch) {
   }));
 }
 
-function renderTalk(talk, dispatch) {
-  return elt(
-    "section", {className: "talk"},
-    elt("h2", null, talk.title, " ",
-        elt("button", {
-          type: "button",
-          onclick() {
-            dispatch({type: "deleteTalk", talk: talk.title});
+class Talk {
+  constructor(talk, dispatch) {
+    this.comments = elt("div");
+    this.dom = elt(
+      "section", {className: "talk"},
+      elt("h2", null, talk.title, " ",
+          elt("button", {
+            type: "button",
+            onclick() {
+              dispatch({type: "deleteTalk", talk: talk.title});
+            }
+          }, "Delete")),
+      elt("div", null, "by ",
+          elt("strong", null, talk.presenter)),
+      elt("p", null, talk.summary),
+      this.comments,
+      elt("form", {
+          onsubmit(event) {
+            event.preventDefault();
+            let form = event.target;
+            dispatch({
+              type: "newComment",
+              talk: talk.title,
+              message: form.elements.comment.value
+            });
+            form.reset();
           }
-        }, "Delete")),
-    elt("div", null, "by ",
-        elt("strong", null, talk.presenter)),
-    elt("p", null, talk.summary),
-    ...talk.comments.map(renderComment),
-    elt("form", {
-        onsubmit(event) {
-          event.preventDefault();
-          let form = event.target;
-          dispatch({
-            type: "newComment",
-            talk: talk.title,
-            message: form.elements.comment.value
-          });
-          form.reset();
-        }
-    },
-        elt("textarea", {name: "comment"}), " ",
-        elt("button", {type: "submit"}, "Send"))
-  );
+      },
+          elt("textarea", {name: "comment"}), " ",
+          elt("button", {type: "submit"}, "Send"))
+    );
+    this.syncState(talk); // Initilize and update this.talk, which is needed for component talk with DOM.
+  }
+
+  syncState(talk) {
+    this.talk = talk;
+    this.comments.textContent = "";
+    for (let comment of talk.comments) {
+      this.comments.appendChild(renderComment(comment));
+    }
+  }
 }
 
 function renderComment(comment) {
@@ -153,6 +165,7 @@ class SkillSharingApp {
   constructor(state, dispatch) {
     this.dispatch = dispatch;
     this.talkDOM = elt("div", {className: "talks"});
+    this.talkMap = Object.create(null);
     this.dom = elt("div", null,
                    renderUserField(state.user, dispatch),
                    this.talkDOM,
@@ -161,15 +174,26 @@ class SkillSharingApp {
   }
 
   syncState(state) {
-    if (state.talks != this.talks) { // redrawing, needs to be dealt with in exercise.
-      this.talkDOM.textContent = "";
-      for (let talk of state.talks) {
-        this.talkDOM.appendChild(
-          renderTalk(talk, this.dispatch)
-        );
+    if (this.talks == state.talks) return;
+    this.talks = state.talks;
+    for (let talk of state.talks) {
+      let cmp = this.talkMap[talk.title];
+      if (cmp && cmp.talk.presenter == talk.presenter
+          && cmp.talk.summary == talk.summary) {
+        cmp.syncState(talk);
+      } else {
+        if(cmp) cmp.dom.remove();
+        cmp = new Talk(talk, this.dispatch);
+        this.talkMap[talk.title] = cmp;
+        this.talkDOM.appendChild(cmp.dom);
       }
     }
-    this.talks = state.talks;
+    for (let title of Object.keys(this.talkMap)) {
+      if (!state.talks.some(t => t.title == title)) {
+        this.talkMap[title].dom.remove();
+        delete this.talkMap[title];
+      }
+    }
   }
 }
 
