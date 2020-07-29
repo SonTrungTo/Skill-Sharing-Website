@@ -164,4 +164,4 @@ function loadTalks() {
   return Object.assign(Object.create(null), json);
 }
 
-new SkillSharingServer(loadTalks()).start(8000);
+new SkillSharingServer(loadTalks()).start(process.env.PORT);
