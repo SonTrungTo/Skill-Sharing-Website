@@ -1,0 +1,9 @@
+{
+  "author": "Son To",
+  "name": "Skill-sharing website",
+  "description": "A place where people exchange ideas",
+  "version": "1.0.0",
+  "dependencies": {
+    "ecstatic": "^4.1.4"
+  }
+}
